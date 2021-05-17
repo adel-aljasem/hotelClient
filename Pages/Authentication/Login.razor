@@ -1,0 +1,77 @@
+﻿@page "/login"
+@using System.Web
+@inject IAuthenticationService authenticationService
+@inject NavigationManager navigationManager
+
+<div style="width:500px;height:200px; background-color:rgba(255,255,255,0.5);position:absolute;top:0px; bottom:0px; left:0px; right:0px; margin:auto; top:-500px">
+    <h1 class="h3 mb-3 pt-3 font-weight-normal text-primary" style="text-align:center;">دخول</h1>
+
+    <EditForm Model="userForAuthentication" OnValidSubmit="LoginUser">
+        <DataAnnotationsValidator />
+        @if (ShowAuthenticationErrors)
+        {
+            <p class="text-center text-danger">@Errors</p>
+        }
+        <InputText @bind-Value="userForAuthentication.UserName" id="email" placeholder="البريد الالكتروني" class="form-control mb-2" />
+        <ValidationMessage For="()=>userForAuthentication.UserName" />
+        <InputText @bind-Value="userForAuthentication.Password" type="password" placeholder="كلمة المرور" id="password" class="form-control mb-2" />
+        <ValidationMessage For="()=> userForAuthentication.Password" />
+
+        @if (IsProcessing)
+        {
+
+            <button type="submit" class="btn btn-success btn-block disabled"><i class="fas fa-sign-in-alt"></i> الرجاء الانتظار</button>
+        }
+        else
+        {
+            <button type="submit" class="btn btn-success btn-block"><i class="fas fa-sign-in-alt"></i> دخول</button>
+
+        }
+
+        <a href="/registration"
+           class="btn btn-primary btn-block"> تسجيل كمستخدم جديد</a>
+    </EditForm>
+
+</div>
+
+@code {
+
+    private AuthenticationDTO userForAuthentication = new AuthenticationDTO();
+    public bool IsProcessing { get; set; } = false;
+    public bool ShowAuthenticationErrors { get; set; }
+    public string Errors { get; set; }
+    public string ReturnUrl { get; set; }
+
+    private async Task LoginUser()
+    {
+        ShowAuthenticationErrors = false;
+        IsProcessing = true;
+        var result = await authenticationService.Login(userForAuthentication);
+        if (result.IsAuthSuccessful)
+        {
+            IsProcessing = false;
+
+            var absoulteUri = new Uri(navigationManager.Uri);
+            var queryParam = HttpUtility.ParseQueryString(absoulteUri.Query);
+            ReturnUrl = queryParam["returnUrl"];
+            if (string.IsNullOrEmpty(ReturnUrl))
+            {
+                navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                navigationManager.NavigateTo("/" + ReturnUrl);
+
+            }
+
+        }
+        else
+        {
+            IsProcessing = false;
+            Errors = result.Errors;
+            ShowAuthenticationErrors = true;
+        }
+    }
+
+
+}
